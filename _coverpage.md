@@ -2,13 +2,6 @@
 
 # coding.........
 
-> keep thiking
-
- About
-- java
-- go
-- python
-- vue
-- react
+> keep thiking and coding
 
 [Go](/README.md)

@@ -1,0 +1,252 @@
+version: '3.5'
+
+services:
+#  nginx:
+#      build: ./nginx
+#      container_name: nginx
+#      ports:
+#        - "80:80"
+#        - "443:443"
+#      volumes:
+#        - ./wwwroot:/usr/share/nginx/html
+#        - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+#        - ./nginx/conf.d/mysite.conf:/etc/nginx/conf.d/mysite.conf
+#      environment:
+#          - NGINX_HOST=localhost
+#          - NGINX_PORT=80
+#      networks:
+#              nsrr:
+#                  aliases:
+#                    - nginx
+  mysql:
+      build: ./mysql
+      hostname: mysql
+      container_name: mysql
+      ports:
+        - "3306:3306"
+      environment:
+        MYSQL_ROOT_PASSWORD: root
+      volumes:
+        - /tmp/:/tmp/
+      # 关闭，如有需要，请自行开启，但是必须要删除 ./mysql/data 的 README.md 文件，否则报错
+      #  - ./mysql/data:/var/lib/mysql
+      networks:
+                  nsrr:
+                      aliases:
+                        - mysql
+
+  mysql-master:
+    container_name: mysql-master
+    image: nacos/nacos-mysql-master:latest
+    env_file:
+      - ./nacos/env/mysql-common.env
+      - ./nacos/env/mysql-master.env
+    volumes:
+      - ./mysql-master:/var/lib/mysql
+    ports:
+      - "3304:3306"
+    restart: always
+    networks:
+      nsrr:
+        aliases:
+          - mysql-master
+
+  mysql-slave:
+    container_name: mysql-slave
+    image: nacos/nacos-mysql-slave:latest
+    env_file:
+      - ./nacos/env/mysql-common.env
+      - ./nacos/env/mysql-slave.env
+    volumes:
+      - ./mysql-slave:/var/lib/mysql
+    ports:
+      - "3305:3306"
+    restart: always
+    networks:
+      nsrr:
+        aliases:
+          - mysql-slave
+    depends_on:
+      - mysql-master
+
+  nacos:
+    image: nacos/nacos-server:latest
+    container_name: nacos
+    environment:
+      - PREFER_HOST_MODE=hostname
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_MASTER_SERVICE_HOST=mysql-master
+      - MYSQL_MASTER_SERVICE_DB_NAME=nacos_devtest
+      - MYSQL_MASTER_SERVICE_PORT=3306
+      - MYSQL_SLAVE_SERVICE_HOST=mysql-slave
+      - MYSQL_SLAVE_SERVICE_PORT=3306
+      - MYSQL_MASTER_SERVICE_USER=nacos
+      - MYSQL_MASTER_SERVICE_PASSWORD=nacos
+      - JAVA_OPTS=-Xmx256m -Xms256m
+    volumes:
+      - ./standalone-logs/:/home/nacos/logs
+    ports:
+      - "8848:8848"
+      - "9555:9555"
+    restart: on-failure
+    networks:
+      nsrr:
+        aliases:
+          - nacos
+    depends_on:
+      - mysql-slave
+
+  redis:
+      image: redis:latest
+      #build: ./redis
+      container_name: redis
+      ports:
+        - "6379:6379"
+      command: redis-server /usr/local/etc/redis/redis.conf
+      volumes:
+#        - /Users/:/Users/
+         - ./redis/conf/redis.conf:/usr/local/etc/redis/redis.conf
+      networks:
+                  nsrr:
+                      aliases:
+                        - redis
+  rmqnamesrv:
+    image: foxiswho/rocketmq:server
+    container_name: rmqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-server -Xms128m -Xmx128m -Xmn128m"
+    ports:
+      - 9876:9876
+    volumes:
+      - ./rmq/logs:/opt/logs
+      - ./rmq/store:/opt/rmqstore
+    networks:
+      nsrr:
+        aliases:
+        - rmqnamesrv
+
+  rmqbroker:
+    image: foxiswho/rocketmq:broker
+    container_name: rmqbroker
+    ports:
+      - 10909:10909
+      - 10911:10911
+    volumes:
+      - ./rmq/logs:/opt/logs
+      - ./rmq/store:/opt/rmqstore
+      - ./rmq/brokerconf/broker.conf:/etc/rocketmq/broker.conf
+    environment:
+      NAMESRV_ADDR: "rmqnamesrv:9876"
+      JAVA_OPTS: " -Duser.home=/opt"
+      JAVA_OPT_EXT: "-server -Xms128m -Xmx128m -Xmn128m"
+    command: mqbroker -c /etc/rocketmq/broker.conf
+    depends_on:
+    - rmqnamesrv
+    networks:
+      nsrr:
+        aliases:
+        - rmqbroker
+
+  rmqconsole:
+    image: styletang/rocketmq-console-ng
+    container_name: rmqconsole
+    ports:
+    - 8180:8080
+    environment:
+      JAVA_OPTS: "-Drocketmq.namesrv.addr=rmqnamesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false "
+      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn128m"
+    depends_on:
+    - rmqnamesrv
+    networks:
+      nsrr:
+        aliases:
+        - rmqconsole
+
+  sentinel:
+    image: foxiswho/sentinel
+    hostname: sentinel
+    container_name: sentinel
+    ports:
+      - "8700:8080"
+    environment:
+      JAVA_OPTS: "-Xmx256m -Xms256m"
+    volumes:
+      - ./sentinel/logs:/opt/logs
+    networks:
+      nsrr:
+        aliases:
+          - sentinel
+
+  elasticsearch:
+    container_name: elasticsearch
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/config/synonyms.txt:/usr/share/elasticsearch/config/synonyms.txt:ro
+      #- ./elasticsearch/plugins/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik
+      #- ./elasticsearch/logs:/usr/share/elasticsearch/logs
+      #- ./elasticsearch/data:/usr/share/elasticsearch/data
+      # elasticsearch/data,logs 数据存储目录,记得本目录设置 777 可写权限，否则启动不成功
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx512m -Xms256m"
+    networks:
+      nsrr:
+        aliases:
+          - elasticsearch
+
+  kibana:
+    container_name: kibana
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/configkibana.yml
+    ports:
+      - "5601:5601"
+    networks:
+      nsrr:
+        aliases:
+          - kibana
+    depends_on:
+      - elasticsearch
+
+  java-demo:
+    build: ./java
+    container_name: java-demo
+    #command: -Djava.security.egd=file:/dev/./urandom -jar /opt/provider-demo.jar
+    command: jar --version
+    ports:
+      - "7020:7020"
+    environment:
+      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn128m"
+    env_file:
+      - ./java/env/prod.env
+    #volumes:
+    #  - ./provider-demo:/opt
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 768M
+          #限制使用不超过 50M 的内存和 0.30（30％）可用处理时间（CPU）
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+          #保留 512M 了内存和 0.25 CPU时间
+    networks:
+      nsrr:
+        aliases:
+          - java-demo
+
+networks:
+  nsrr:
+    name: nsrr
+    driver: bridge

@@ -1,7 +1,8 @@
 <!-- _sidebar.md -->
 
 * es
-  * 
+  * [数据类型](docs/elk/Field%20data%20types.md)
+  * [DSL](docs/elk/DSL实践.md)
 * go
-  * [gin](go/gin/gin.md) <!--注意这里是相对路径-->
-  * [gin部分源码](go/gin/code.md)
+  * [gin](docs/go/gin/gin.md) <!--注意这里是相对路径-->
+  * [gin部分源码](docs/go/gin/code.md)

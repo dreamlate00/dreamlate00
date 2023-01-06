@@ -10,3 +10,5 @@
   * [simple server](docs/go/gin/simple_server.md)
 * java
   * [集成mockito](docs/java/springboot-%E9%9B%86%E6%88%90mockito.md)
+* 面试题
+  * [redis](docs/%E9%9D%A2%E8%AF%95%E9%A2%98/Redis%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B1%87%E6%80%BB.md)

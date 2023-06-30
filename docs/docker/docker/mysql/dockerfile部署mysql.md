@@ -136,10 +136,6 @@ Removing intermediate container 8f551037fa01
 Successfully built 8fb5362648b9
 ```
 
-[![复制代码](imgs/copycode.gif)](javascript:void(0);)
-
- 
-
  6、找到生成的镜像，启动容器
 
 ```

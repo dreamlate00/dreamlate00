@@ -48,3 +48,9 @@ set pastetoggle <F9>
 set encoding=utf8
 ```
 
+
+
+```
+set ff=unix
+```
+

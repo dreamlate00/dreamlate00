@@ -1,0 +1,16 @@
+按照数值进直方图统计
+
+```
+POST /sales/_search?size=0
+{
+    "aggs" : {
+        "prices" : {
+            "histogram" : {
+                "field" : "price",
+                "interval" : 50
+            }
+        }
+    }
+}
+```
+

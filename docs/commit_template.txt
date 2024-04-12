@@ -1,0 +1,14 @@
+# usage: 
+# git config          commit.template D:\\dev\git\\commit_template.txt
+# git config --global commit.template D:\\dev\git\\commit_template.txt
+# git commit
+#Commit type：提交类型，比如fix、feat、refactor merge等
+#Scope：影响范围，比如bug、login、signup等
+#Subject：提交信息的简短描述，一般不超过50个字符
+#Body：提交信息的详细描述，一般不超过72个字符
+#Footer：与本次提交相关的链接、问题单号等其他信息
+Commit type: 
+Scope:
+Subject:
+Body:
+Footer:

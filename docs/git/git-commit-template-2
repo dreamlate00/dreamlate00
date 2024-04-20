@@ -1,6 +1,6 @@
 # usage: 
-# git config          commit.template D:\\dev\\git\\commit_template.txt
-# git config --global commit.template D:\\dev\\git\\commit_template.txt
+# git config          commit.template /path/to/commit_template.txt
+# git config --global commit.template /path/to/commit_template.txt
 # git commit
 #Commit type：提交类型，比如fix、feat、refactor merge等
 #Scope：影响范围，比如bug、login、signup等
